@@ -1,0 +1,67 @@
+- name: Restore backup from Ansible server to client
+  hosts: all
+  remote_user: semaphore
+  become: true
+  become_method: sudo
+  become_user: root
+  vars:
+    ansible_shell_executable: /bin/bash
+    ansible_ssh_private_key_file: /home/semaphore/.ssh/id_semaphore
+
+  tasks:
+    - name: Ensure rsync is installed on client
+      package:
+        name: rsync
+        state: present
+
+    - name: Stop Apache (web server)
+      service:
+        name: apache2
+        state: stopped
+
+    - name: Stop MariaDB (database server)
+      service:
+        name: mariadb
+        state: stopped
+
+    - name: Ensure web directory exists on client
+      file:
+        path: /var/www/client/
+        state: directory
+        mode: '0755'
+
+    - name: Ensure database directory exists on client
+      file:
+        path: /var/lib/mysql/prestashop/
+        state: directory
+        mode: '0755'
+
+    - name: Restore client web data
+      ansible.posix.synchronize:
+        src: "/backups/{{ inventory_hostname }}/"
+        dest: /var/www/client/
+        archive: yes
+        delete: yes
+        compress: yes
+        mode: push
+      delegate_to: localhost
+
+    - name: Restore client database data
+      ansible.posix.synchronize:
+        src: "/backups/{{ inventory_hostname }}/data-base/"
+        dest: /var/lib/mysql/prestashop/
+        archive: yes
+        delete: yes
+        compress: yes
+        mode: push
+      delegate_to: localhost
+
+    - name: Start MariaDB (database server)
+      service:
+        name: mariadb
+        state: started
+
+    - name: Start Apache (web server)
+      service:
+        name: apache2
+        state: started
