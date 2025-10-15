@@ -1,0 +1,31 @@
+- name: Pull client data to Ansible server (as root)
+  hosts: all
+  remote_user: root
+  vars:
+    ansible_ssh_private_key_file: /root/.ssh/id_ansible
+
+  tasks:
+    - name: Ensure rsync is installed on client
+      package:
+        name: rsync
+        state: present
+
+    - name: Pull client data to Ansible server
+      ansible.posix.synchronize:
+        src: /var/www/client/
+        dest: "/backups/{{ inventory_hostname }}/"
+        archive: yes
+        delete: yes
+        compress: yes
+        mode: pull
+      delegate_to: localhost
+
+    - name: Pull client data to Ansible server
+      ansible.posix.synchronize:
+        src: /var/lib/mysql/prestashop/
+        dest: "/backups/{{ inventory_hostname }}/data-base/"
+        archive: yes
+        delete: yes
+        compress: yes
+        mode: pull
+      delegate_to: localhost
