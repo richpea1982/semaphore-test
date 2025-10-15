@@ -1,9 +1,8 @@
----
-- name: Pull client data to Ansible server (as root)
+- name: Pull client data to Ansible server
   hosts: all
-  remote_user: root
+  remote_user: semaphore
   vars:
-    ansible_ssh_private_key_file: /root/.ssh/id_semaphore
+    ansible_ssh_private_key_file: /home/semaphore/.ssh/id_semaphore
 
   tasks:
     - name: Ensure rsync is installed on client
@@ -11,7 +10,14 @@
         name: rsync
         state: present
 
-    - name: Pull client data to Ansible server
+    - name: Ensure backup directory exists on controller
+      file:
+        path: "/backups/{{ inventory_hostname }}"
+        state: directory
+        mode: '0755'
+      delegate_to: localhost
+
+    - name: Pull client web data
       ansible.posix.synchronize:
         src: /var/www/client/
         dest: "/backups/{{ inventory_hostname }}/"
@@ -21,7 +27,7 @@
         mode: pull
       delegate_to: localhost
 
-    - name: Pull client data to Ansible server
+    - name: Pull client database data
       ansible.posix.synchronize:
         src: /var/lib/mysql/prestashop/
         dest: "/backups/{{ inventory_hostname }}/data-base/"
