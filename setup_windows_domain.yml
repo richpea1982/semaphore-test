@@ -23,18 +23,18 @@
         state: present
         include_management_tools: yes
 
-    - name: Promote server to Domain Controller (only if not already promoted)
+    - name: Check if server is already in a domain
+      win_shell: |
+        (Get-WmiObject Win32_ComputerSystem).PartOfDomain
+      register: domain_status
+
+    - name: Promote server to Domain Controller
       win_domain:
         dns_domain_name: "{{ domain_name }}"
         safe_mode_password: "{{ safe_mode_password }}"
         domain_netbios_name: ACTIVENETWARE
-        reboot: yes
-      when: ansible_windows_domain_role != "PrimaryDomainController"
-
-    - name: Wait for server to reboot
-      win_reboot:
-        reboot_timeout: 600
-        test_command: whoami
+        reboot: no
+      when: domain_status.stdout == "False"
 
     - name: Install DHCP Server role
       win_feature:
