@@ -2,9 +2,6 @@
 - name: Configure Windows Server 2019 as Domain Controller with DNS and DHCP
   hosts: SVR-2019
   gather_facts: yes
-  tasks:
-    - name: Authorize DHCP server in AD
-    
   vars:
     domain_name: activenetware.local
     safe_mode_password: "Web123!!!"
@@ -16,6 +13,7 @@
     dhcp_dns_server: "192.168.0.171"
 
   tasks:
+
     - name: Install AD-Domain-Services and DNS roles
       win_feature:
         name:
@@ -24,12 +22,13 @@
         state: present
         include_management_tools: yes
 
-    - name: Promote server to Domain Controller
+    - name: Promote server to Domain Controller (only if not already promoted)
       win_domain:
         dns_domain_name: "{{ domain_name }}"
         safe_mode_password: "{{ safe_mode_password }}"
         domain_netbios_name: ACTIVENETWARE
         reboot: yes
+      when: ansible_windows_domain_role != "PrimaryDomainController"
 
     - name: Wait for server to reboot
       win_reboot:
@@ -42,9 +41,22 @@
         state: present
         include_management_tools: yes
 
+    - name: Check if DHCP is already authorized
+      win_shell: |
+        Get-DhcpServerInDC | Where-Object { $_.DnsName -eq "{{ ansible_hostname }}" }
+      register: dhcp_auth_check
+      ignore_errors: yes
+
     - name: Authorize DHCP server in AD
       win_shell: |
         Add-DhcpServerInDC -DnsName "{{ ansible_hostname }}" -IPAddress "{{ dhcp_dns_server }}"
+      when: dhcp_auth_check.stdout_lines | length == 0
+
+    - name: Check if DHCP scope exists
+      win_shell: |
+        Get-DhcpServerv4Scope -ScopeId "{{ dhcp_gateway }}"
+      register: dhcp_scope_check
+      ignore_errors: yes
 
     - name: Create DHCP scope
       win_shell: |
@@ -53,6 +65,7 @@
                               -EndRange "{{ dhcp_end_ip }}" `
                               -SubnetMask "{{ dhcp_subnet_mask }}" `
                               -State Active
+      when: dhcp_scope_check.failed
 
     - name: Set DHCP options
       win_shell: |
