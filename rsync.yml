@@ -1,3 +1,4 @@
+---
 - name: Pull client data to Ansible server (as root)
   hosts: all
   remote_user: root
