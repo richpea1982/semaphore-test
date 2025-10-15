@@ -1,7 +1,10 @@
 ---
 - name: Configure Windows Server 2019 as Domain Controller with DNS and DHCP
   hosts: SVR-2019
-  gather_facts: no
+  gather_facts: yes
+  tasks:
+    - name: Authorize DHCP server in AD
+    
   vars:
     domain_name: activenetware.local
     safe_mode_password: "Web123!!!"
