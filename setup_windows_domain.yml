@@ -11,6 +11,7 @@
     dhcp_subnet_mask: "255.255.255.0"
     dhcp_gateway: "192.168.0.190"
     dhcp_dns_server: "192.168.0.171"
+    dhcp_scope_id: "192.168.0.0"
 
   tasks:
 
@@ -54,7 +55,7 @@
 
     - name: Check if DHCP scope exists
       win_shell: |
-        Get-DhcpServerv4Scope -ScopeId "{{ dhcp_gateway }}"
+        Get-DhcpServerv4Scope -ScopeId "{{ dhcp_scope_id }}"
       register: dhcp_scope_check
       ignore_errors: yes
 
@@ -69,7 +70,7 @@
 
     - name: Set DHCP options
       win_shell: |
-        Set-DhcpServerv4OptionValue -ScopeId "{{ dhcp_gateway }}" `
+        Set-DhcpServerv4OptionValue -ScopeId "{{ dhcp_scope_id }}" `
                                     -Router "{{ dhcp_gateway }}" `
                                     -DnsServer "{{ dhcp_dns_server }}" `
                                     -DnsDomain "{{ domain_name }}"
